@@ -8,14 +8,14 @@ pipeline {
     pollSCM('*/5 * * * *')
   }
   stages{
-    stage ('Initialize') {
-            steps {
-                sh '''
-                    echo "PATH = ${PATH}"
-                    echo "M2_HOME = ${M2_HOME}"
-                ''' 
-            }
+      stage ('Initialize') {
+        steps {
+            sh '''
+                echo "PATH = ${PATH}"
+                echo "M2_HOME = ${M2_HOME}"
+            ''' 
         }
+       }
        stage ('Build'){
         steps {
           sh 'mvn clean package'
@@ -27,20 +27,18 @@ pipeline {
            }
          }
        }
-       stage ('Deployments') {
-         parallel{
-           stage ('Deploy to Staging'){
-             steps {
-               sh "cp **/target/*.war /usr/local/Cellar/tomcat_stag/10.0.6/libexec/webapps"
-             }
-           }
-           stage ('Deploy to prod') {
-             steps {
-               sh "cp **/target/*.war /usr/local/Cellar/tomcat_prod/10.0.6/libexec/webapps"
-             }     
-           }
+       stage ('Deploy to Staging'){
+         steps {
+           build job:'deploy_to_stag'
          }
        }
+       stage ('Deploy to prod') {
+         steps {
+           timeout(time:5, unit:"DAYS")
+           input message:'Approve Prod deployment?'
+           build job:'deploy_to_prod'
+         }     
+       } 
     }
 } 
   
